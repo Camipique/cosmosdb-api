@@ -1,4 +1,4 @@
-# Stores API
+# Stores API using CosmosDB
 This is an API built with Flask and Flask-RESTful for a simple online store.
  
 Instead of using Pony ORM to manage and access the database, it uses Azure Cosmos DB.
