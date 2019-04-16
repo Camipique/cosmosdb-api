@@ -1,8 +1,5 @@
 Flask
 Flask-RESTful
 flask_cors
-flask_injector
-injector
-flask-jwt
 passlib
 azure-cosmos
