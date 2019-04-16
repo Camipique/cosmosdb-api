@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ```
 
 ## Run
-Make sure you are in the virtual environment and, in the stores folder, run
+Make sure you are in the virtual environment and, in the cosmosdb folder, run
 ```
 python app.py
 ```
