@@ -1,60 +1,57 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.getcwd()))
+
 from flask import Flask
 from flask_restful import Api
+from flask_injector import FlaskInjector, singleton, inject
 from flask_cors import CORS
 
-from azure.cosmos import cosmos_client
+from cosmosdb.models.CosmosClient import CosmosClientDatabase
+from cosmosdb.services import SERVICES, UserService
 
 app = Flask(__name__)
 CORS(app)
 api = Api(app=app)
 
 
-# if db exists, returns it, else creates
-def create_db_if_not_exists(clt, db_name):
-    databases = list(clt.ReadDatabases())
+def configure(binder):
+    endpoint = 'https://localhost:8081'
+    primary_key = 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=='
+    database_name = 'CosmosDatabase'
+    containers = [
+        'User',
+        'Item',
+        'Store'
+    ]
 
-    for database in databases:
-        if database['id'] == db_name:
-            return database
+    args = {
+        'endpoint': endpoint,
+        'primary_key': primary_key,
+        'database_name': database_name,
+        'containers': containers
+    }
 
-    return client.CreateDatabase({'id': db_name})
+    db = CosmosClientDatabase(args)
+    binder.bind(CosmosClientDatabase, to=db, scope=singleton)
 
-
-def create_container_in_db_if_not_exists(clt, db_link, containers_to_add):
-    containers = list(clt.ReadContainer())
-
-    for container in containers_to_add:
-        if container == db_name:
-            return database
-
-    return client.CreateDatabase({'id': db_name})
-
-
-endpoint = 'https://localhost:8081'
-primary_key = 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=='
-database_name = 'CosmosDatabase'
-containers = [
-    'User',
-    'Item'
-]
-
-container_options = {
-    'offerThroughput': 400
-}
-
-client = cosmos_client.CosmosClient(
-            url_connection=endpoint,
-            auth={'masterKey': primary_key}
-        )
-db = create_db_if_not_exists(client, database_name)
-db_link = db['_self']
-
-create_container_in_db_if_not_exists
+    for service in SERVICES:
+        binder.bind(service, scope=singleton)
 
 
+injector = FlaskInjector(app=app, modules=[configure])
 
-# for container in containers:
-#    container_links[container] = client.CreateContainer(db['_self'], {'id': container}, container_options)
+user_service = UserService(injector.injector.get(CosmosClientDatabase, scope=singleton))
+
+# print(user_service.get_users())
+# user_service.add_user('Carlos', 'password')
+# user_service.add_user('Miguel', 'drowssap')
+# user_service.add_user('Pinto', 'password123')
+# print(user_service.get_users())
+# print(user_service.get_user_by_username('Carlos'))
+# print(user_service.get_user_by_username('Miguel'))
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
