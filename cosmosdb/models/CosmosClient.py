@@ -15,7 +15,9 @@ class CosmosClientDatabase:
         self.database_id = 'dbs/' + args['database_name']
 
         self.create_containers_if_not_exists(self.database_id, args['containers'])
-        self.containers_id = [self.database_id + '/colls/' + container_name for container_name in args['containers']]
+        self.containers_id = {
+            container_name: self.database_id + '/colls/' + container_name for container_name in args['containers']
+        }
 
     def create_db_if_not_exists(self, db_name):
         try:
@@ -39,9 +41,18 @@ class CosmosClientDatabase:
 
     def get_container(self, container_name):
         try:
-            return self.client.ReadContainer(container_name)
+            container_id = self.containers_id.get(container_name, None)
+
+            if container_id:
+                return self.client.ReadContainer(self.containers_id[container_name])
+            else:
+                return None
+
         except HTTPFailure:
             return None
+
+    def get_container_id(self, container_name):
+        return self.containers_id.get(container_name, None)
 
     def get_containers(self):
         return self.containers_id
