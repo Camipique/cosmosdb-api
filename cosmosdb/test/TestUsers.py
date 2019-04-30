@@ -45,7 +45,7 @@ class DBTest(unittest.TestCase):
 
         self.assertIsNone(self.db.get_container('NotContainer'))
 
-    def test_add_user(self):
+    def test_users(self):
         user_service: UserService = self.injector.get(UserService)
         self.assertIsNotNone(user_service)
 
