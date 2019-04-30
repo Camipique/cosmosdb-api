@@ -3,13 +3,15 @@ import sys
 
 sys.path.append(os.path.dirname(os.getcwd()))
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from flask import Flask
 from flask_restful import Api
-from flask_injector import FlaskInjector, singleton, inject
+from flask_injector import FlaskInjector, singleton
 from flask_cors import CORS
-
 from cosmosdb.models.CosmosClient import CosmosClientDatabase
-from cosmosdb.services import SERVICES, UserService
+from cosmosdb.services import SERVICES, UserService, ItemService, StoreService
 
 app = Flask(__name__)
 CORS(app)
@@ -21,9 +23,7 @@ def configure(binder):
     primary_key = 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=='
     database_name = 'CosmosDatabase'
     containers = [
-        'User',
-        'Item',
-        'Store'
+        'StoreObject'
     ]
 
     args = {
@@ -43,14 +43,33 @@ def configure(binder):
 injector = FlaskInjector(app=app, modules=[configure])
 
 user_service = UserService(injector.injector.get(CosmosClientDatabase, scope=singleton))
+item_service = ItemService(injector.injector.get(CosmosClientDatabase, scope=singleton))
+store_service = StoreService(injector.injector.get(CosmosClientDatabase, scope=singleton))
 
-# print(user_service.get_users())
-# user_service.add_user('Carlos', 'password')
-# user_service.add_user('Miguel', 'drowssap')
-# user_service.add_user('Pinto', 'password123')
-# print(user_service.get_users())
-# print(user_service.get_user_by_username('Carlos'))
-# print(user_service.get_user_by_username('Miguel'))
+user_service.add_user('Carlos', 'password')
+user_service.add_user('Miguel', 'drowssap')
+user_service.add_user('Pinto', 'password123')
+print(user_service.get_users())
+user_service.delete_user('Carlos')
+print(user_service.get_users())
+
+print('----------------')
+
+store_service.add_store('store1')
+store_service.add_store('store2')
+print(store_service.get_stores())
+store_service.delete_store('store2')
+print(store_service.get_stores())
+
+print('----------------')
+
+item_service.add_item('Carlos', 3500, 'store1')
+item_service.add_item('Carlos', 3500, 'store1')
+print(item_service.get_items())
+
+print('----------------')
+
+print(store_service.get_stores())
 
 
 if __name__ == "__main__":

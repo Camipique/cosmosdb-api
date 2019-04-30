@@ -11,26 +11,38 @@ class CosmosClientDatabase:
             auth={'masterKey': args['primary_key']}
         )
 
-        create_db_if_not_exists(self.client, args['database_name'])
-
+        self.create_db_if_not_exists(args['database_name'])
         self.database_id = 'dbs/' + args['database_name']
 
-        create_containers_if_not_exists(self.client, self.database_id, args['containers'])
+        self.create_containers_if_not_exists(self.database_id, args['containers'])
+        self.containers_id = [self.database_id + '/colls/' + container_name for container_name in args['containers']]
 
-        self.containers_id = {container_name: self.database_id + '/colls/' + container_name for container_name in args['containers']}
-
-
-def create_db_if_not_exists(client, db_name):
-    try:
-        client.ReadDatabase('dbs/'+db_name)
-    except HTTPFailure:
-        client.CreateDatabase({'id': db_name})
-
-
-def create_containers_if_not_exists(client, database_id, containers):
-    for container_id in containers:
-        container_link = database_id+'/colls/'+container_id
+    def create_db_if_not_exists(self, db_name):
         try:
-            client.ReadContainer(container_link)
+            self.client.ReadDatabase('dbs/'+db_name)
         except HTTPFailure:
-            client.CreateContainer(database_id, {'id': container_id})
+            self.client.CreateDatabase({'id': db_name})
+
+    def create_containers_if_not_exists(self, database_id, containers):
+        for container_id in containers:
+            container_link = database_id+'/colls/'+container_id
+            try:
+                self.client.ReadContainer(container_link)
+            except HTTPFailure:
+                self.client.CreateContainer(database_id, {'id': container_id})
+
+    def delete_db(self):
+        try:
+            self.client.DeleteDatabase(self.database_id)
+        except HTTPFailure:
+            print("Something wrong in delete_db().")
+
+    def get_container(self, container_name):
+        try:
+            return self.client.ReadContainer(container_name)
+        except HTTPFailure:
+            return None
+
+    def get_containers(self):
+        return self.containers_id
+

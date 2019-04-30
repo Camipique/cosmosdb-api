@@ -1,80 +1,82 @@
 import unittest
-from azure.cosmos import cosmos_client
+from cosmosdb.models.CosmosClient import CosmosClientDatabase
+from flask_injector import Injector, singleton
+from cosmosdb.services import SERVICES
 
 
 class DBTest(unittest.TestCase):
 
-    config = {
-        'ENDPOINT': 'https://localhost:8081',
-        'PRIMARYKEY': 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==',
-        'DATABASE': 'CosmosDatabase',
-        'CONTAINERS': [
-            'User',
-            'Item'
-        ]
-    }
-
     def setUp(self):
-        # Initialize cosmos client, we can also define connection_policy and consistency_level
-        self.client = cosmos_client.CosmosClient(
-            url_connection=DBTest.config['ENDPOINT'],
-            auth={'masterKey': DBTest.config['PRIMARYKEY']}
-        )
 
-        self.db = self.client.CreateDatabase({'id': DBTest.config['DATABASE']})
+        def configure(binder):
+            endpoint = 'https://localhost:8081'
+            primary_key = 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=='
+            database_name = 'CosmosDatabase'
+            containers = [
+                'StoreObject'
+            ]
 
-        options = {
-            'offerThroughput': 400
-        }
+            args = {
+                'endpoint': endpoint,
+                'primary_key': primary_key,
+                'database_name': database_name,
+                'containers': containers
+            }
 
-        self.containers = {}
+            db = CosmosClientDatabase(args)
+            binder.bind(CosmosClientDatabase, to=db, scope=singleton)
 
-        for container in DBTest.config['CONTAINERS']:
-            self.containers[container] = self.client.CreateContainer(self.db['_self'], {'id': container}, options)
+            for service in SERVICES:
+                binder.bind(service, scope=singleton)
+
+        self.injector = Injector(modules=[configure])
+        self.db = self.injector.get(CosmosClientDatabase)
 
     def tearDown(self):
-        self.client.DeleteDatabase(self.db['_self'])
-        # pass
+        self.db.delete_db()
 
-    def testDB(self):
+    def test_db_exists(self):
         self.assertIsNotNone(self.db)
 
-    def testContainers(self):
-        item_container = self.containers['Item']
-        self.assertIsNotNone(item_container)
+    def test_container_exists(self):
 
-        user_container = self.containers['User']
-        self.assertIsNotNone(user_container)
+        for container_id in self.db.get_containers():
+            self.assertIsNotNone(self.db.get_container(container_id))
 
-    def testAddItem(self):
-        
-        name = "car"
-        price = 3500
+        self.assertIsNone(self.db.get_container('NotContainer'))
 
-        car = self.client.CreateItem(
-            self.containers['Item']['_self'],
-            {
-                'name': name,
-                'price': price
-                # 'store': store_id
-            }
-        )
+    def test_add_user(self):
+        pass
 
-        self.assertIsNotNone(car)
-
-        query = {'query': "SELECT * FROM item i"}
-
-        options = {
-            'enableCrossPartitionQuery': True
-        }
-
-        result = self.client.QueryItems(self.containers['Item']['_self'], query, options)
-
-        itemIter = iter(result)
-        item = next(itemIter)
-
-        self.assertEqual(item['name'], name)
-        self.assertEqual(item['price'], price)
+    # def testAddItem(self):
+    #
+    #     name = "car"
+    #     price = 3500
+    #
+    #     car = self.client.CreateItem(
+    #         self.containers['Item']['_self'],
+    #         {
+    #             'name': name,
+    #             'price': price
+    #             # 'store': store_id
+    #         }
+    #     )
+    #
+    #     self.assertIsNotNone(car)
+    #
+    #     query = {'query': "SELECT * FROM item i"}
+    #
+    #     options = {
+    #         'enableCrossPartitionQuery': True
+    #     }
+    #
+    #     result = self.client.QueryItems(self.containers['Item']['_self'], query, options)
+    #
+    #     itemIter = iter(result)
+    #     item = next(itemIter)
+    #
+    #     self.assertEqual(item['name'], name)
+    #     self.assertEqual(item['price'], price)
 
 
 if __name__ == "__main__":
