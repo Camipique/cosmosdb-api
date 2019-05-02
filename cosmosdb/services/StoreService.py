@@ -21,12 +21,9 @@ class StoreService:
         }
 
         stores = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
+        return [store for store in stores]
 
-        result = [{'name': store['store_name'], 'items': store['items']} for store in stores]
-
-        return result
-
-    def get_store_by_name(self, store_name):
+    def get_store(self, store_name):
         query = {
             "query": "SELECT * FROM o WHERE o.type=@type AND o.store_name=@store_name",
             "parameters": [
@@ -42,41 +39,71 @@ class StoreService:
         }
 
         result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
+        return next(iter(list(result)), None)
 
-        store = next(iter(result.fetch_next_block() or []), None)
-
-        if store:
-            return [{'store_name': store['store_name'], 'items': store['items']}]
-
-    def add_store(self, store_name):
-        store = {
-            'type': store_type,
-            'store_name': store_name,
-            'items': []
-        }
-
-        if not self.get_store_by_name(store_name):
-            self.client_db.client.CreateItem(self.client_db.containers_id['StoreObject'], store)
-
-    def delete_store(self, store_name):
-
+    def get_store_by_id(self, _id):
         query = {
-            "query": "SELECT * FROM o WHERE o.type=@type AND o.store_name=@store_name",
+            "query": "SELECT * FROM o WHERE o.type=@type AND o.id=@id",
             "parameters": [
                 {
                     "name": "@type",
                     "value": store_type
                 },
                 {
-                    "name": "@store_name",
-                    "value": store_name
+                    "name": "@id",
+                    "value": _id
                 }
             ]
         }
 
         result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
+        return next(iter(list(result)), None)
 
-        store = next(iter(result.fetch_next_block() or []), None)
+    def add_update(self, store_name, items=None, _id=None):
+        store_doc = None
+        # add new store
+        if not _id:
+            if not self.get_store(store_name):
+                store = {
+                    'type': store_type,
+                    'store_name': store_name,
+                    'items': items
+                }
+
+                # TODO each item should be updated since they will be in this store
+
+                store_doc = self.client_db.client.CreateItem(self.client_db.get_container_id('StoreObject'), store)
+        else:
+            store_doc = self.get_store_by_id(_id)
+            store_doc_by_store_name = self.get_store(store_name)
+
+            if not store_doc_by_store_name or store_doc_by_store_name['id'] == _id:
+                store_doc['store_name'] = store_name
+                # TODO add items
+                self.client_db.client.ReplaceItem(store_doc['_self'], store_doc)
+            else:
+                store_doc = None
+
+        return store_doc
+
+    def delete_store(self, _id):
+
+        query = {
+            "query": "SELECT * FROM o WHERE o.type=@type AND o.id=@id",
+            "parameters": [
+                {
+                    "name": "@type",
+                    "value": store_type
+                },
+                {
+                    "name": "@id",
+                    "value": _id
+                }
+            ]
+        }
+
+        result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
+        store = next(iter(list(result)), None)
 
         if store:
-            return self.client_db.client.DeleteItem(store['_self'])
+            self.client_db.client.DeleteItem(store['_self'])

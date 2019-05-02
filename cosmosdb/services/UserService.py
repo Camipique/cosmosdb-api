@@ -43,9 +43,7 @@ class UserService:
         }
 
         result = self.client_db.client.QueryItems(self.client_db.get_container_id('StoreObject'), query)
-        user = next(iter(list(result)), None)
-
-        return user
+        return next(iter(result), None)
 
     def get_user_by_id(self, _id):
         query = {
@@ -63,7 +61,7 @@ class UserService:
         }
 
         result = self.client_db.client.QueryItems(self.client_db.get_container_id('StoreObject'), query)
-        return next(iter(list(result)), None)
+        return next(iter(result), None)
 
     def add_update(self, username, password, _id=None):
         user_doc = None
@@ -81,11 +79,12 @@ class UserService:
             user_doc = self.get_user_by_id(_id)
             user_doc_by_username = self.get_user(username)
 
-            if not user_doc_by_username or user_doc_by_username['id'] == user_doc['id']:
+            if not user_doc_by_username or user_doc_by_username['id'] == _id:
                 user_doc['username'] = username
                 user_doc['password'] = password
+                self.client_db.client.ReplaceItem(user_doc['_self'], user_doc)
             else:
-                user_doc = None
+                user_doc = None  # Did not update since there is already a user with the given username
 
         return user_doc
 
@@ -106,7 +105,7 @@ class UserService:
         }
 
         result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
-        user = next(iter(list(result)), None)
+        user = next(iter(result), None)
 
         if user:
             self.client_db.client.DeleteItem(user['_self'])

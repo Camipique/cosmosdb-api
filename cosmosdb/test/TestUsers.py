@@ -113,7 +113,7 @@ class DBTest(unittest.TestCase):
 
         # Trying to delete a not existent user
         # Try to use exceptions to assert this method
-        user_service.delete_user(user_doc1_update1['id'])
+        # user_service.delete_user(user_doc1_update1['id'])
 
 
 if __name__ == "__main__":

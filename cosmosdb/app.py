@@ -42,6 +42,17 @@ def configure(binder):
 
 injector = FlaskInjector(app=app, modules=[configure])
 
+# username1 = 'Carlos'
+# password1 = '123'
+#
+# username2 = 'Miguel'
+# password2 = '321'
+#
+# user_service = injector.injector.get(UserService)\
+#
+# user_service.add_update(username1, password1)
+# user_service.add_update(username2, password2)
+#
 # store_service.add_store('store1')
 # store_service.add_store('store2')
 # print(store_service.get_stores())
