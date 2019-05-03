@@ -98,6 +98,9 @@ class DBTest(unittest.TestCase):
         # Check if the store was deleted
         self.assertIsNone(store_service.get_store(store_doc1_update1_store_name['store_name']))
 
+        # Update a deleted store
+        self.assertIsNone(store_service.add_update(store_name=store1, _id=store_doc1_update1_store_name['id']))
+
     def test_items(self):
         item_service: ItemService = self.injector.get(ItemService)
         self.assertIsNotNone(item_service)
@@ -136,26 +139,25 @@ class DBTest(unittest.TestCase):
         self.assertEqual(item_doc2['price'], price2)
         self.assertIsNone(item_doc2['store'])
 
-        # # Update store_doc1 name
-        # store_doc1_update1_store_name = store_service.add_update(store_name=store3, _id=store_doc1['id'])
-        #
-        # self.assertEqual(store_doc1_update1_store_name['type'], 'Store')
-        # self.assertEqual(store_doc1_update1_store_name['store_name'], store3)
-        # self.assertIsNone(store_doc1_update1_store_name['items'])
-        #
-        # # store name that was subbed
-        # self.assertIsNone(store_service.get_store(store1))
-        #
-        # # Update store_doc1 name to an existing one
-        # store_doc1_update2_store_name = store_service.add_update(store_name=store4, _id=store_doc1_update1_store_name['id'])
-        #
-        # self.assertIsNone(store_doc1_update2_store_name)
-        #
-        # # Delete store
-        # store_service.delete_store(store_doc1_update1_store_name['id'])
-        #
-        # # Check if the store was deleted
-        # self.assertIsNone(store_service.get_store(store_doc1_update1_store_name['store_name']))
+        # Update item_doc1 name and price
+        item_doc1_update1 = item_service.add_update(item3, price3, _id=item_doc1['id'])
+
+        self.assertEqual(item_doc1_update1['type'], 'Item')
+        self.assertEqual(item_doc1_update1['name'], item3)
+        self.assertEqual(item_doc1_update1['price'], price3)
+        self.assertIsNone(item_doc1_update1['store'])
+
+        # Item was changed
+        self.assertIsNone(item_service.get_store_item(item1, None))
+
+        item_doc1_update2 = item_service.add_update(item4, price4, _id=item_doc1['id'])
+        self.assertIsNone(item_doc1_update2)
+
+        item_service.delete_item(item_doc1_update1['id'])
+        self.assertIsNone(item_service.add_update(item1, price1, _id=item_doc1_update1['id']))
+
+    def test_store_and_items(self):
+        pass
 
 
 if __name__ == "__main__":

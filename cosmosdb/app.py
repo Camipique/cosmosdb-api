@@ -11,7 +11,7 @@ from flask_restful import Api
 from flask_injector import FlaskInjector, singleton
 from flask_cors import CORS
 from cosmosdb.models.CosmosClient import CosmosClientDatabase
-from cosmosdb.services import SERVICES, UserService, ItemService, StoreService
+from cosmosdb.services import SERVICES
 
 app = Flask(__name__)
 CORS(app)
@@ -41,33 +41,6 @@ def configure(binder):
 
 
 injector = FlaskInjector(app=app, modules=[configure])
-
-# username1 = 'Carlos'
-# password1 = '123'
-#
-# username2 = 'Miguel'
-# password2 = '321'
-#
-# user_service = injector.injector.get(UserService)\
-#
-# user_service.add_update(username1, password1)
-# user_service.add_update(username2, password2)
-#
-# store_service.add_store('store1')
-# store_service.add_store('store2')
-# print(store_service.get_stores())
-# store_service.delete_store('store2')
-# print(store_service.get_stores())
-#
-# print('----------------')
-#
-# item_service.add_item('Carlos', 3500, 'store1')
-# item_service.add_item('Carlos', 3500, 'store1')
-# print(item_service.get_items())
-#
-# print('----------------')
-#
-# print(store_service.get_stores())
 
 
 if __name__ == "__main__":

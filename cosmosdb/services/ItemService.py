@@ -1,4 +1,4 @@
-from flask_injector import inject
+from injector import inject
 from cosmosdb.models.CosmosClient import CosmosClientDatabase
 
 item_type = "Item"
@@ -64,17 +64,30 @@ class ItemService:
         result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
         return next(iter(result), None)
 
+    def get_item_by_id(self, _id):
+        query = {
+            "query": "SELECT * FROM o WHERE o.type=@type AND o.id=@id",
+            "parameters": [
+                {
+                    "name": "@type",
+                    "value": item_type
+                },
+                {
+                    "name": "@id",
+                    "value": _id
+                }
+            ]
+        }
+
+        result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
+        return next(iter(result), None)
+
     def add_update(self, name, price, store=None, _id=None):
-        item_doc = None
+
+        if self.get_store_item(name, store):  # item already exists in the store
+            return None
 
         if not _id:
-            items = self.get_items(name)
-            for item in items:
-                if item['name'] == name and not item['store']:  # Trying to add same item
-                    return None
-                elif item['name'] == name and store == item['store']:  # Trying to add the same item in the same store
-                    return None
-
             item = {
                 'type': item_type,
                 'name': name,
@@ -85,54 +98,42 @@ class ItemService:
             # TODO add item to the store, if store is specified
 
             item_doc = self.client_db.client.CreateItem(self.client_db.get_container_id('StoreObject'), item)
-        else:
-            pass
+        elif not store:  # update an item that is not associated with a store
+            item_doc = self.get_item_by_id(_id)
+
+            if not item_doc:
+                return None
+
+            item_doc['name'] = name
+            item_doc['price'] = price
+            self.client_db.client.ReplaceItem(item_doc['_self'], item_doc)
+        else:  # _id and store specified
+            item_doc = self.get_item_by_id(_id)
+
+            if not item_doc:
+                return None
+
+            item_doc['name'] = name
+            item_doc['price'] = price
+            item_doc['store'] = store
+
+            # TODO add item to the store
+            self.client_db.client.ReplaceItem(item_doc['_self'], item_doc)
 
         return item_doc
 
-        # if not self.get_item_by_name(name, store):
-        #         #     query = {
-        #         #         "query": "SELECT * FROM o WHERE o.type=@type AND o.store_name=@store_name",
-        #         #         "parameters": [
-        #         #             {
-        #         #                 "name": "@type",
-        #         #                 "value": store_type
-        #         #             },
-        #         #             {
-        #         #                 "name": "@store_name",
-        #         #                 "value": store
-        #         #             }
-        #         #         ]
-        #         #     }
-        #         #
-        #         #     result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
-        #         #
-        #         #     store = result.fetch_next_block()[0]
-        #         #
-        #         #     if store['items']:
-        #         #         store['items'] = store['items'].append(item)
-        #         #     else:
-        #         #         store['items'] = [item]
-        #         #
-        #         #     self.client_db.client.ReplaceItem(store['_self'], store)
-        #         #     self.client_db.client.CreateItem(self.client_db.containers_id['StoreObject'], item)
-
-    def delete_item(self, name, store):
+    def delete_item(self, _id):
 
         query = {
-            "query": "SELECT * FROM o WHERE o.type=@type AND o.name=@name AND o.store=@store",
+            "query": "SELECT * FROM o WHERE o.type=@type AND o.id=@id",
             "parameters": [
                 {
                     "name": "@type",
                     "value": item_type
                 },
                 {
-                    "name": "@name",
-                    "value": name
-                },
-                {
-                    "name": "@store",
-                    "value": store
+                    "name": "@id",
+                    "value": _id
                 }
             ]
         }
@@ -141,4 +142,5 @@ class ItemService:
         item = next(iter(result))
 
         if item:
+            # TODO delete item from store, if it is in one
             self.client_db.client.DeleteItem(item['_self'])

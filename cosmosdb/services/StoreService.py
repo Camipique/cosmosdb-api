@@ -39,7 +39,7 @@ class StoreService:
         }
 
         result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
-        return next(iter(list(result)), None)
+        return next(iter(result), None)
 
     def get_store_by_id(self, _id):
         query = {
@@ -57,7 +57,7 @@ class StoreService:
         }
 
         result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
-        return next(iter(list(result)), None)
+        return next(iter(result), None)
 
     def add_update(self, store_name, items=None, _id=None):
         store_doc = None
@@ -77,7 +77,7 @@ class StoreService:
             store_doc = self.get_store_by_id(_id)
             store_doc_by_store_name = self.get_store(store_name)
 
-            if not store_doc_by_store_name or store_doc_by_store_name['id'] == _id:
+            if store_doc and (not store_doc_by_store_name or store_doc_by_store_name['id'] == _id):
                 store_doc['store_name'] = store_name
                 # TODO add items
                 self.client_db.client.ReplaceItem(store_doc['_self'], store_doc)
@@ -103,7 +103,7 @@ class StoreService:
         }
 
         result = self.client_db.client.QueryItems(self.client_db.containers_id['StoreObject'], query)
-        store = next(iter(list(result)), None)
+        store = next(iter(result), None)
 
         if store:
             self.client_db.client.DeleteItem(store['_self'])
